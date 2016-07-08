@@ -10,7 +10,7 @@ import UIKit
 import pop
 
 //Default values
-private let defaultCountOfVisibleCards = 3
+private let defaultCountOfVisibleCards = 4
 private let defaultBackgroundCardsTopMargin: CGFloat = 4.0
 private let defaultBackgroundCardsScalePercent: CGFloat = 0.95
 private let defaultBackgroundCardsLeftMargin: CGFloat = 8.0
@@ -125,10 +125,12 @@ public class KolodaView: UIView, DraggableCardDelegate {
                     let nextCardView = createCardAtIndex(actualIndex)
                     let isTop = index == 0
                     nextCardView.userInteractionEnabled = isTop
-                    nextCardView.alpha = alphaValueOpaque
-                    if shouldTransparentizeNextCard && !isTop {
-                        nextCardView.alpha = alphaValueSemiTransparent
-                    }
+//                    nextCardView.alpha = alphaValueOpaque
+//                    if shouldTransparentizeNextCard && !isTop {
+//                        nextCardView.alpha = alphaValueSemiTransparent
+//                    }
+                    nextCardView.overlayAlpha = dimmValueForCard(atIndex: index)
+                    
                     visibleCards.append(nextCardView)
                     isTop ? addSubview(nextCardView) : insertSubview(nextCardView, belowSubview: visibleCards[index - 1])
                 }
@@ -157,16 +159,16 @@ public class KolodaView: UIView, DraggableCardDelegate {
     
     //MARK: Frames
     public func frameForCardAtIndex(index: UInt) -> CGRect {
-        let bottomOffset:CGFloat = 0
-        let topOffset = defaultBackgroundCardsTopMargin * CGFloat(defaultCountOfVisibleCards - 1)
-        let scalePercent = defaultBackgroundCardsScalePercent
-        let width = CGRectGetWidth(self.frame) * pow(scalePercent, CGFloat(index))
-        let xOffset = (CGRectGetWidth(self.frame) - width) / 2
-        let height = (CGRectGetHeight(self.frame) - bottomOffset - topOffset) * pow(scalePercent, CGFloat(index))
-        let multiplier: CGFloat = index > 0 ? 1.0 : 0.0
-        let previousCardFrame = index > 0 ? frameForCardAtIndex(max(index - 1, 0)) : CGRectZero
-        let yOffset = (CGRectGetHeight(previousCardFrame) - height + previousCardFrame.origin.y + defaultBackgroundCardsTopMargin) * multiplier
-        let frame = CGRect(x: xOffset, y: yOffset, width: width, height: height)
+        var frame = CGRect(origin: .zero, size: self.frame.size)
+        
+        let scale = pow(defaultBackgroundCardsScalePercent, CGFloat(index))
+        
+        frame.size.width *= scale
+        frame.size.height *= scale
+        
+        frame.origin.x = 0.5 * (self.frame.width - frame.width)
+        
+        frame.origin.y -= 6.0 * CGFloat(index) * scale
         
         return frame
     }
@@ -216,11 +218,12 @@ public class KolodaView: UIView, DraggableCardDelegate {
                 card.frame = cardParameters.frame
                 
                 //For fully visible next card, when moving top card
-                if shouldTransparentizeNextCard {
-                    if index == 1 {
-                        card.alpha = alphaValueSemiTransparent + (alphaValueOpaque - alphaValueSemiTransparent) * fraction
-                    }
-                }
+//                if shouldTransparentizeNextCard {
+//                    if index == 1 {
+//                        card.alpha = alphaValueSemiTransparent + (alphaValueOpaque - alphaValueSemiTransparent) * fraction
+//                    }
+//                }
+                card.overlayAlpha = dimmValueForCard(atIndex: index)
             }
         }
     }
@@ -280,9 +283,10 @@ public class KolodaView: UIView, DraggableCardDelegate {
                 
                 for index in 1..<_self.visibleCards.count {
                     let card = _self.visibleCards[index]
-                    if _self.shouldTransparentizeNextCard {
-                        card.alpha = index == 0 ? _self.alphaValueOpaque : _self.alphaValueSemiTransparent
-                    }
+//                    if _self.shouldTransparentizeNextCard {
+//                        card.alpha = index == 0 ? _self.alphaValueOpaque : _self.alphaValueSemiTransparent
+//                    }
+                    card.overlayAlpha = _self.dimmValueForCard(atIndex: index)
                 }
             }
         } else {
@@ -379,18 +383,21 @@ public class KolodaView: UIView, DraggableCardDelegate {
             let cardParameters = backgroundCardParametersForFrame(frameForCardAtIndex(UInt(index)))
             var animationCompletion: ((Bool) -> Void)? = nil
             if index != 0 {
-                if shouldTransparentizeNextCard {
-                    currentCard.alpha = alphaValueSemiTransparent
-                }
+//                if shouldTransparentizeNextCard {
+//                    currentCard.alpha = alphaValueSemiTransparent
+//                }
+                currentCard.overlayAlpha = dimmValueForCard(atIndex: index)
             } else {
                 animationCompletion = { finished in
                     completion?()
                 }
                 
                 if shouldTransparentizeNextCard {
-                    animator.applyAlphaAnimation(currentCard, alpha: alphaValueOpaque)
+//                    animator.applyAlphaAnimation(currentCard, alpha: alphaValueOpaque)
+                    currentCard.setOverlayAlphaAnimated(1.0 - alphaValueOpaque)
                 } else {
-                    currentCard.alpha = alphaValueOpaque
+//                    currentCard.alpha = alphaValueOpaque
+                    currentCard.overlayAlpha = dimmValueForCard(atIndex: index)
                 }
             }
             
@@ -418,9 +425,10 @@ public class KolodaView: UIView, DraggableCardDelegate {
             if dataSource != nil {
                 let firstCardView = createCardAtIndex(UInt(currentCardIndex), frame: frameForTopCard())
                 
-                if shouldTransparentizeNextCard {
-                    firstCardView.alpha = alphaValueTransparent
-                }
+//                if shouldTransparentizeNextCard {
+//                    firstCardView.alpha = alphaValueTransparent
+//                }
+                firstCardView.overlayAlpha = dimmValueForCard(atIndex: 0)
                 firstCardView.delegate = self
                 
                 addSubview(firstCardView)
@@ -438,9 +446,10 @@ public class KolodaView: UIView, DraggableCardDelegate {
             }
             
             for (index, card) in visibleCards.dropFirst().enumerate() {
-                if shouldTransparentizeNextCard {
-                    card.alpha = alphaValueSemiTransparent
-                }
+//                if shouldTransparentizeNextCard {
+//                    card.alpha = alphaValueSemiTransparent
+//                }
+                card.overlayAlpha = dimmValueForCard(atIndex: index + 1)
                 card.userInteractionEnabled = false
                 
                 let cardParameters = backgroundCardParametersForFrame(frameForCardAtIndex(UInt(index + 1)))
@@ -464,7 +473,8 @@ public class KolodaView: UIView, DraggableCardDelegate {
             for index in startIndex...endIndex {
                 let nextCardView = generateCard(frameForTopCard())
                 layoutCard(nextCardView, atIndex: UInt(index))
-                nextCardView.alpha = shouldTransparentizeNextCard ? alphaValueSemiTransparent : alphaValueOpaque
+//                nextCardView.alpha = shouldTransparentizeNextCard ? alphaValueSemiTransparent : alphaValueOpaque
+                nextCardView.overlayAlpha = dimmValueForCard(atIndex: index)
                 
                 visibleCards.append(nextCardView)
                 configureCard(nextCardView, atIndex: UInt(currentCardIndex + index))
@@ -524,7 +534,8 @@ public class KolodaView: UIView, DraggableCardDelegate {
                 
                 if visibleCards.count > 1 {
                     let nextCard = visibleCards[1]
-                    nextCard.alpha = shouldTransparentizeNextCard ? alphaValueSemiTransparent : alphaValueOpaque
+//                    nextCard.alpha = shouldTransparentizeNextCard ? alphaValueSemiTransparent : alphaValueOpaque
+                    nextCard.overlayAlpha = dimmValueForCard(atIndex: 1)
                 }
                 frontCard.swipe(direction)
                 frontCard.delegate = nil
@@ -563,13 +574,14 @@ public class KolodaView: UIView, DraggableCardDelegate {
             visibleCards.insert(card, atIndex: visibleCardIndex)
             if visibleCardIndex == 0 {
                 card.userInteractionEnabled = true
-                card.alpha = alphaValueOpaque
+//                card.alpha = alphaValueOpaque
                 insertSubview(card, atIndex: visibleCards.count - 1)
             } else {
                 card.userInteractionEnabled = false
-                card.alpha = shouldTransparentizeNextCard ? alphaValueSemiTransparent : alphaValueOpaque
+//                card.alpha = shouldTransparentizeNextCard ? alphaValueSemiTransparent : alphaValueOpaque
                 insertSubview(card, belowSubview: visibleCards[visibleCardIndex - 1])
             }
+            card.overlayAlpha = dimmValueForCard(atIndex: visibleCardIndex)
             layoutCard(card, atIndex: UInt(visibleCardIndex))
             insertedCards.append(card)
         }
@@ -656,7 +668,8 @@ public class KolodaView: UIView, DraggableCardDelegate {
         loadMissingCards(missingCardsCount())
         layoutDeck()
         for (index, card) in visibleCards.enumerate() {
-            card.alpha = shouldTransparentizeNextCard && index != 0 ? alphaValueSemiTransparent : alphaValueOpaque
+//            card.alpha = shouldTransparentizeNextCard && index != 0 ? alphaValueSemiTransparent : alphaValueOpaque
+            card.overlayAlpha = dimmValueForCard(atIndex: index)
             card.userInteractionEnabled = index == 0
         }
         animating = false
@@ -681,6 +694,16 @@ public class KolodaView: UIView, DraggableCardDelegate {
                 let card = visibleCards[visibleCardIndex]
                 configureCard(card, atIndex: UInt(index))
             }
+        }
+    }
+    
+    // MARK: My code
+    
+    private func dimmValueForCard(atIndex index: Int) -> CGFloat {
+        if shouldTransparentizeNextCard {
+            return CGFloat(index) / CGFloat(defaultCountOfVisibleCards + 1)
+        } else {
+            return alphaValueOpaque
         }
     }
 }

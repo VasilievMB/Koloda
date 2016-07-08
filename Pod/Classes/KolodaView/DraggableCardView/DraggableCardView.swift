@@ -39,7 +39,13 @@ public class DraggableCardView: UIView, UIGestureRecognizerDelegate {
     
     weak var delegate: DraggableCardDelegate?
     
-    private var overlayView: OverlayView?
+    private var overlayView: OverlayView? {
+        didSet {
+            if let alpha = overlayAlpha {
+                overlayView?.alpha = alpha
+            }
+        }
+    }
     private(set) var contentView: UIView?
     
     private var panGestureRecognizer: UIPanGestureRecognizer!
@@ -325,7 +331,7 @@ public class DraggableCardView: UIView, UIGestureRecognizerDelegate {
     
     private func swipeAction(direction: SwipeResultDirection) {
         overlayView?.overlayState = direction
-        overlayView?.alpha = 1.0
+//        overlayView?.alpha = 1.0
         delegate?.card(self, wasSwipedInDirection: direction)
         let translationAnimation = POPBasicAnimation(propertyNamed: kPOPLayerTranslationXY)
         translationAnimation.duration = cardSwipeActionAnimationDuration
@@ -380,6 +386,7 @@ public class DraggableCardView: UIView, UIGestureRecognizerDelegate {
     func removeAnimations() {
         pop_removeAllAnimations()
         layer.pop_removeAllAnimations()
+        overlayView?.pop_removeAllAnimations()
     }
     
     func swipe(direction: SwipeResultDirection) {
@@ -405,10 +412,28 @@ public class DraggableCardView: UIView, UIGestureRecognizerDelegate {
             layer.pop_addAnimation(swipeRotationAnimation, forKey: "swipeRotationAnimation")
             
             overlayView?.overlayState = direction
-            let overlayAlphaAnimation = POPBasicAnimation(propertyNamed: kPOPViewAlpha)
-            overlayAlphaAnimation.toValue = 1.0
-            overlayAlphaAnimation.duration = cardSwipeActionAnimationDuration
-            overlayView?.pop_addAnimation(overlayAlphaAnimation, forKey: "swipeOverlayAnimation")
+//            let overlayAlphaAnimation = POPBasicAnimation(propertyNamed: kPOPViewAlpha)
+//            overlayAlphaAnimation.toValue = 1.0
+//            overlayAlphaAnimation.duration = cardSwipeActionAnimationDuration
+//            overlayView?.pop_addAnimation(overlayAlphaAnimation, forKey: "swipeOverlayAnimation")
+        }
+    }
+    
+    public var overlayAlpha: CGFloat? {
+        didSet {
+            overlayView?.alpha = overlayAlpha ?? 0.0
+            if overlayAlpha == 1.0 {
+                print("bad")
+            }
+        }
+    }
+    
+    public func setOverlayAlphaAnimated(alpha: CGFloat, duration: NSTimeInterval = 0.2) {
+        if let overlay = overlayView {
+            let alphaAnimation = POPBasicAnimation(propertyNamed: kPOPViewAlpha)
+            alphaAnimation.toValue = alpha
+            alphaAnimation.duration = duration
+            overlay.pop_addAnimation(alphaAnimation, forKey: "alpha")
         }
     }
 }
