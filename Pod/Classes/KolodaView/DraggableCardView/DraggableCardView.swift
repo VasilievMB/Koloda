@@ -102,7 +102,7 @@ public class DraggableCardView: UIView, UIGestureRecognizerDelegate {
         
         if let overlay = overlayView {
             self.overlayView = overlay
-            overlay.alpha = 0;
+//            overlay.alpha = 0;
             self.addSubview(overlay)
             configureOverlayView()
             self.insertSubview(view, belowSubview: overlay)

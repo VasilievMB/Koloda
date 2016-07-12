@@ -701,7 +701,7 @@ public class KolodaView: UIView, DraggableCardDelegate {
     
     private func dimmValueForCard(atIndex index: Int) -> CGFloat {
         if shouldTransparentizeNextCard {
-            return CGFloat(index) / CGFloat(defaultCountOfVisibleCards + 1)
+            return CGFloat(index) / CGFloat(defaultCountOfVisibleCards)
         } else {
             return alphaValueOpaque
         }
